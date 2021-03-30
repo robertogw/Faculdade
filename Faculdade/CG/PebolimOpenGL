@@ -1,0 +1,959 @@
+#include<stdlib.h>
+#include <glut.h>
+#include <glu.h>
+#include <math.h>
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
+GLfloat angle = 5, fAspect;
+GLfloat rotX = 0, rotY = 0, rotZ = 0, rotX_ini, rotY_ini;
+GLfloat obsX = 0, obsY = 0, obsZ = 150, obsX_ini, obsY_ini, obsZ_ini;
+int x_ini, y_ini, bot;
+
+void Textura() {
+	unsigned int texture;
+	glGenTextures(1, &texture);
+	glBindTexture(GL_TEXTURE_2D, texture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	int width, height, nrChannels;
+	stbi_set_flip_vertically_on_load(true);
+	unsigned char* data = stbi_load("futcampo.bmp", &width, &height, &nrChannels, 0);
+	if (data)
+	{
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+	}
+	else {
+		printf("falhou");
+	}
+	stbi_image_free(data);
+	glEnable(GL_TEXTURE_2D);
+}
+
+
+// Função para iluminação
+void DefineIluminacao(void)
+{
+	GLfloat luzAmbiente[4] = { 0.4,0.4,0.4,1.0 };
+	GLfloat luzDifusa[4] = { 0.7,0.7,0.7,1.0 };	   // "cor" 
+	GLfloat luzEspecular[4] = { 1.0, 1.0, 1.0, 1.0 };// "brilho" 
+	GLfloat posicaoLuz[4] = { 0.0, 20.0, 20.0, 0 };
+
+	// Capacidade de brilho do material
+	GLfloat especularidade[4] = { 1.0,1.0,1.0,1.0 };
+	GLint especMaterial = 60;
+
+	// Define a refletância do material 
+	glMaterialfv(GL_FRONT, GL_SPECULAR, especularidade);
+
+	// Define a concentração do brilho
+	glMateriali(GL_FRONT, GL_SHININESS, especMaterial);
+
+	// Ativa o uso da luz ambiente 
+	glLightModelfv(GL_LIGHT_MODEL_AMBIENT, luzAmbiente);
+
+	// Define os parâmetros da luz de número 0
+	glLightfv(GL_LIGHT0, GL_AMBIENT, luzAmbiente);
+	glLightfv(GL_LIGHT0, GL_DIFFUSE, luzDifusa);
+	glLightfv(GL_LIGHT0, GL_SPECULAR, luzEspecular);
+	glLightfv(GL_LIGHT0, GL_POSITION, posicaoLuz);
+}
+
+
+//Função para desenha o cilindro
+void desenhaCilindro(float v1, float v2, float v3) {
+	GLUquadric* qobj1 = gluNewQuadric();
+	glPushMatrix();
+	glColor3f(0.4, 0.4, 0.4);
+	glTranslatef(v1, v2, v3);
+	glRotatef(0, 1.0f, 0.0f, 0.0f);
+	gluCylinder(qobj1, 0.1f, 0.1f, 12, 15, 15);
+	glPopMatrix();
+}
+
+//Função para desenha o cilindro mão
+void desenhaCilindro2(float x, float y, float z) {
+	GLUquadric* qobj1 = gluNewQuadric();
+	glPushMatrix();
+	glColor3f(0.36, 0.16, 0.14);
+	glTranslatef(x, y, z);
+	glRotatef(0, 1.0f, 0.0f, 0.0f);
+	gluCylinder(qobj1, 0.2f, 0.2f, 1.5, 15, 15);
+	glPopMatrix();
+}
+
+void desenhadisco(float x, float y, float z) {
+	GLUquadric* qobj1 = gluNewQuadric();
+	glPushMatrix();
+	glColor3f(0.4, 0.4, 0.4);
+	glTranslatef(x, y, z);
+	glRotatef(0, 1.0f, 0.0f, 0.0f);
+	gluDisk(qobj1, 0, 0.1, 30, 15);
+	glPopMatrix();
+}
+
+//Função disco
+void desenhadisco2(float x, float y, float z) {
+	GLUquadric* qobj1 = gluNewQuadric();
+	glPushMatrix();
+	glColor3f(0.36, 0.16, 0.14);
+	glTranslatef(x, y, z);
+	glRotatef(0, 1.0f, 0.0f, 0.0f);
+	gluDisk(qobj1, 0, 0.2, 30, 15);
+	glPopMatrix();
+}
+
+//Função boneco vermelho 
+void desenhaBoneco1(float x, float y, float z) {
+	glPushMatrix();
+	glTranslatef(x, y, z);
+	glBegin(GL_QUADS);
+	glNormal3f(0.8,0,0);
+	glColor3f(1, 0.2, 0.2);
+	glVertex3f(6.18, 1.25, -0.2);
+	glVertex3f(6.18, 0.25, -0.2);
+	glVertex3f(6.18, 0.25, 0.2);
+	glVertex3f(6.18, 1.25, 0.2);
+	glEnd();
+	glBegin(GL_QUADS);
+	glNormal3f(-0.8,0,0);
+	glColor3f(1, 0.2, 0.2);
+	glVertex3f(5.88, 1.25, -0.2);
+	glVertex3f(5.88, 0.25, -0.2);
+	glVertex3f(5.88, 0.25, 0.2);
+	glVertex3f(5.88, 1.25, 0.2);
+	glEnd();
+	glBegin(GL_QUADS);
+	glNormal3f(0,0.8,0);
+	glColor3f(1, 0.2, 0.2);
+	glVertex3f(5.88, 1.25, -0.2);
+	glVertex3f(5.88, 1.25, 0.2);
+	glVertex3f(6.18, 1.25, 0.2);
+	glVertex3f(6.18, 1.25, -0.2);
+	glEnd();
+	glBegin(GL_QUADS);
+	glNormal3f(0, 0, -0.8);
+	glColor3f(1, 0.2, 0.2);
+	glVertex3f(5.88, 1.25, -0.2);
+	glVertex3f(5.88, 0.25, -0.2);
+	glVertex3f(6.18, 0.25, -0.2);
+	glVertex3f(6.18, 1.25, -0.2);
+	glEnd();
+	glBegin(GL_QUADS);
+	glNormal3f(0, 0, 0.8);
+	glColor3f(1, 0.2, 0.2);
+	glVertex3f(5.88, 1.25, 0.2);
+	glVertex3f(5.88, 0.25, 0.2);
+	glVertex3f(6.18, 0.25, 0.2);
+	glVertex3f(6.18, 1.25, 0.2);
+	glEnd();
+
+	glPopMatrix();
+}
+
+//Função boneco azul
+void desenhaBoneco2(float x, float y, float z) {
+	glPushMatrix();
+	glTranslatef(x, y, z);
+	glBegin(GL_QUADS);
+	glNormal3f(0.8, 0, 0);
+	glColor3f(0.2, 0.2, 1);
+	glVertex3f(6.18, 1.25, -0.2);
+	glVertex3f(6.18, 0.25, -0.2);
+	glVertex3f(6.18, 0.25, 0.2);
+	glVertex3f(6.18, 1.25, 0.2);
+	glEnd();
+	glBegin(GL_QUADS);
+	glNormal3f(-0.8, 0, 0);
+	glColor3f(0.2, 0.2, 1);
+	glVertex3f(5.88, 1.25, -0.2);
+	glVertex3f(5.88, 0.25, -0.2);
+	glVertex3f(5.88, 0.25, 0.2);
+	glVertex3f(5.88, 1.25, 0.2);
+	glEnd();
+	glBegin(GL_QUADS);
+	glNormal3f(0, 0.8, 0);
+	glColor3f(0.2, 0.2, 1);
+	glVertex3f(5.88, 1.25, -0.2);
+	glVertex3f(5.88, 1.25, 0.2);
+	glVertex3f(6.18, 1.25, 0.2);
+	glVertex3f(6.18, 1.25, -0.2);
+	glEnd();
+	glBegin(GL_QUADS);
+	glNormal3f(0, 0, -0.8);
+	glColor3f(0.2, 0.2, 1);
+	glVertex3f(5.88, 1.25, -0.2);
+	glVertex3f(5.88, 0.25, -0.2);
+	glVertex3f(6.18, 0.25, -0.2);
+	glVertex3f(6.18, 1.25, -0.2);
+	glEnd();
+	glBegin(GL_QUADS);
+	glNormal3f(0, 0, 0.8);
+	glColor3f(0.2, 0.2, 1);
+	glVertex3f(5.88, 1.25, 0.2);
+	glVertex3f(5.88, 0.25, 0.2);
+	glVertex3f(6.18, 0.25, 0.2);
+	glVertex3f(6.18, 1.25, 0.2);
+	glEnd();
+
+	glPopMatrix();
+}
+
+
+
+// Função callback de redesenho da janela de visualização
+void Desenha(void)
+{
+	// Limpa a janela e o depth buffer
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glColor3f(0.0f, 0.0f, 0.0f);
+	
+	//Bonecos
+
+	desenhaBoneco1(2.42, 0, 0);//goleiro 1
+
+	desenhaBoneco1(0, 0, 0);//zaga 1
+
+	desenhaBoneco1(0, 0, -2.3);//zaga 1
+
+	desenhaBoneco1(0, 0, 2.3);//zaga 1
+
+	desenhaBoneco2(-2.42, 0, -2.3);//ataque 2
+																							
+	desenhaBoneco2(-2.42, 0, 0);//ataque 2
+
+	desenhaBoneco2(-2.42, 0, 2.3);//ataque 2
+
+	desenhaBoneco1(-4.84, 0, -3);//meio 1
+
+	desenhaBoneco1(-4.84, 0, -1);//meio 1
+
+	desenhaBoneco1(-4.84, 0, 1);//meio 1
+
+	desenhaBoneco1(-4.84, 0, 3);//meio 1
+
+	desenhaBoneco2(-7.26, 0, -3);//meio 2
+
+	desenhaBoneco2(-7.26, 0, -1);//meio 2
+
+	desenhaBoneco2(-7.26, 0, 1);//meio 2
+
+	desenhaBoneco2(-7.26, 0, 3);//meio 2
+
+	desenhaBoneco1(-9.68, 0, -2.3);//ataque 1
+
+	desenhaBoneco1(-9.68, 0, 0);//ataque 1
+
+	desenhaBoneco1(-9.68, 0, 2.3);//ataque 1
+
+	desenhaBoneco2(-12.1, 0, -2.3);//zaga 2
+
+	desenhaBoneco2(-12.1, 0, 0);//zaga 2
+
+	desenhaBoneco2(-12.1, 0, 2.3);//zaga 2
+
+	desenhaBoneco2(-14.52, 0, 0);//goleiro 2
+
+	//Fim bonecos
+
+	//desenha discos
+
+	desenhadisco(3.66, 1, -5.5);
+
+	desenhadisco(-1.24, 1, -5.5);
+
+	desenhadisco(-6.08, 1, -5.5);
+
+	desenhadisco(-8.5, 1, -5.5);
+
+	desenhadisco(8.5, 1, 5.5); 
+
+	desenhadisco(6.08, 1, 5.5);
+
+	desenhadisco(1.24, 1, 5.5);
+
+	desenhadisco(-3.66, 1, 5.5);
+
+	desenhadisco2(1.24, 1, -8);
+
+	desenhadisco2(6.08, 1, -8);
+
+	desenhadisco2(8.5, 1, -8);
+
+	desenhadisco2(-3.66, 1, -8);
+
+	desenhadisco2(-1.24, 1, 8);
+
+	desenhadisco2(-6.08, 1, 8);
+
+	desenhadisco2(-8.5, 1, 8);
+
+	desenhadisco2(3.66, 1, 8);
+
+	desenhadisco2(0, -1.5, 6);
+
+	//fim discos
+
+	//cilindros
+
+	desenhaCilindro(1.24, 1, -6.5);
+
+	desenhaCilindro2(1.24,1,-8);
+
+	desenhaCilindro(3.66, 1, -5.5);
+
+	desenhaCilindro2(3.66, 1, 6.5);
+
+	desenhaCilindro(6.08, 1, -6.5);
+
+	desenhaCilindro2(6.08, 1, -8);
+
+	desenhaCilindro(8.5, 1, -6.5);
+
+	desenhaCilindro2(8.5, 1, -8);
+
+	desenhaCilindro(-1.24, 1, -5.5);
+
+	desenhaCilindro2(-1.24, 1, 6.5);
+
+	desenhaCilindro(-3.66, 1, -6.5);
+
+	desenhaCilindro2(-3.66, 1, -8);
+
+	desenhaCilindro(-6.08, 1, -5.5);
+
+	desenhaCilindro2(-6.08, 1, 6.5);
+
+	desenhaCilindro(-8.5, 1, -5.5);
+
+	desenhaCilindro2(-8.5, 1, 6.5);	
+
+
+	//fim cilindros
+
+	//Inicio da Base
+
+	glBegin(GL_QUADS); //Parede Grande 1
+	glColor3f(0.36, 0.25, 0.20);
+	glNormal3f(0, 0, -0.8);
+	glVertex3i(-9, 2, 5); //B6
+	glVertex3i(-9, 0, 5); //B2
+	glVertex3i(9, 0, 5); //B4
+	glVertex3i(9, 2, 5); // B8
+	glEnd();
+
+
+	glBegin(GL_QUADS); //Parede Grande 1 Externa
+	glColor3f(0.36, 0.25, 0.20);
+	glNormal3f(0, 0, 0.8);
+	glVertex3f(-9.7, 2, 5.3); //B16
+	glVertex3f(-9.7, -3, 5.3); //B12
+	glVertex3f(9.7, -3, 5.3); //B14
+	glVertex3f(9.7, 2, 5.3); // B18
+	glEnd();
+
+
+	glBegin(GL_QUADS); //Liga Grande 1
+	glColor3f(0.36, 0.25, 0.20);
+	glNormal3f(0, 0.8, 0);
+	glVertex3f(-9.7, 2, 5.3); //B16
+	glVertex3i(-9, 2, 5); //B6
+	glVertex3i(9, 2, 5); // B8
+	glVertex3f(9.7, 2, 5.3); // B18
+	glEnd();
+
+
+	glBegin(GL_QUADS);//Parede Pequena 1
+	glColor3f(0.36, 0.25, 0.20);
+	glNormal3f(0.8,0,0);
+	glVertex3f(-9, 2, 5); //B6
+	glVertex3f(-9, 2, 1.5); //B5
+	glVertex3f(-9, 0, 1.5); //B1
+	glVertex3f(-9, 0, 5); //B2
+	glEnd();
+
+	glBegin(GL_QUADS);//Parede Pequena 1.1
+	glColor3f(0.36, 0.25, 0.20);
+	glNormal3f(0.8,0,0);
+	glVertex3f(-9, 2, -1.5); //B6
+	glVertex3f(-9, 2, -5); //B5
+	glVertex3f(-9, 0, -5); //B1
+	glVertex3f(-9, 0, -1.5); //B2
+	glEnd();
+
+	glBegin(GL_QUADS); //liga
+	glColor3f(0.36, 0.25, 0.20);
+	glNormal3f(0, 0, 0.8);
+	glVertex3f(-9, 1.98, 1.5);
+	glVertex3f(-9.7, 1.98, 1.5);
+	glVertex3f(-9.7, 0, 1.5);
+	glVertex3f(-9, 0, 1.5);
+	glEnd();
+
+	glBegin(GL_QUADS); //liga 
+	glColor3f(0.36, 0.25, 0.20);
+	glNormal3f(0, 0, -0.8);
+	glVertex3f(-9, 1.98, -1.5);
+	glVertex3f(-9.7, 1.98, -1.5);
+	glVertex3f(-9.7, 0, -1.5);
+	glVertex3f(-9, 0, -1.5);
+	glEnd();
+
+	glBegin(GL_QUADS); //Parede Pequena 1 Externa
+	glColor3f(0.36, 0.25, 0.20);
+	glNormal3f(-0.8, 0, 0);	
+	glVertex3f(-9.7, 2, 5.3); //B16
+	glVertex3f(-9.7, 2, -5.3); //B15
+	glVertex3f(-9.7, -3, -5.3); //B11
+	glVertex3f(-9.7, -3, 5.3); //B12
+	glEnd();
+
+	glBegin(GL_QUADS); //Parede Pequena 1 Externa interna
+	glColor3f(0.34, 0.24, 0.19);
+	glNormal3f(0.5, 0, 0);
+	glVertex3f(-9.6, 2, 5.3); //B16
+	glVertex3f(-9.6, 2, -5.3); //B15
+	glVertex3f(-9.6, -3, -5.3); //B11
+	glVertex3f(-9.6, -3, 5.3); //B12
+	glEnd();
+
+	glBegin(GL_QUADS); //Liga Pequena 1
+	glColor3f(0.36, 0.25, 0.20);
+	glNormal3f(0, 0.8, 0);
+	glVertex3f(-9.7, 2, 5.3); //B16
+	glVertex3i(-9, 2, 5); //B6
+	glVertex3i(-9, 2, -5); //B5
+	glVertex3f(-9.7, 2, -5.3); //B15
+	glEnd();
+
+
+	glBegin(GL_QUADS); //Parede Pequena 2 
+	glColor3f(0.36, 0.25, 0.20);
+	glNormal3f(-0.8, 0, 0);
+	glVertex3f(9, 2, 5); // B8
+	glVertex3f(9, 2, 1.5); //B7
+	glVertex3f(9, 0, 1.5); //B3
+	glVertex3f(9, 0, 5); //B4
+	glEnd();
+
+	glBegin(GL_QUADS); //Parede Pequena 2 
+	glColor3f(0.36, 0.25, 0.20);
+	glNormal3f(-0.8, 0, 0);
+	glVertex3f(9, 2, -5); // B8
+	glVertex3f(9, 2, -1.5); //B7
+	glVertex3f(9, 0, -1.5); //B3
+	glVertex3f(9, 0, -5); //B4
+	glEnd();
+
+	glBegin(GL_QUADS); //liga
+	glColor3f(0.36, 0.25, 0.20);
+	glNormal3f(0, 0, 0.8);
+	glVertex3f(9, 1.98, 1.5);
+	glVertex3f(9.7, 1.98, 1.5);
+	glVertex3f(9.7, 0, 1.5);
+	glVertex3f(9, 0, 1.5);
+	glEnd();
+
+	glBegin(GL_QUADS); //liga 
+	glColor3f(0.36, 0.25, 0.20);
+	glNormal3f(0, 0, -0.8);
+	glVertex3f(9, 1.98, -1.5);
+	glVertex3f(9.7, 1.98, -1.5);
+	glVertex3f(9.7, 0, -1.5);
+	glVertex3f(9, 0, -1.5);
+	glEnd();
+
+
+	glBegin(GL_QUADS); //Parede Pequena 2 Externa
+	glColor3f(0.36, 0.25, 0.20);
+	glNormal3f(0.8, 0, 0);	
+	glVertex3f(9.7, 2, 5.3); // B18
+	glVertex3f(9.7, 2, -5.3); //B17
+	glVertex3f(9.7, -3, -5.3); //B13
+	glVertex3f(9.7, 0 - 3, 5.3); //B14
+	glEnd();
+
+	glBegin(GL_QUADS); //Parede Pequena 2 Externa interna
+	glColor3f(0.34, 0.24, 0.19);
+	glNormal3f(-0.5, 0, 0);
+	glVertex3f(9.6, 2, 5.3); // B18
+	glVertex3f(9.6, 2, -5.3); //B17
+	glVertex3f(9.6, -3, -5.3); //B13
+	glVertex3f(9.6, 0 - 3, 5.3); //B14
+	glEnd();
+
+	glBegin(GL_QUADS); //Liga Pequena 2
+	glColor3f(0.36, 0.25, 0.20);
+	glNormal3f(0, 0.8, 0);
+	glVertex3f(9.7, 2, 5.3); // B18
+	glVertex3i(9, 2, 5); // B8
+	glVertex3i(9, 2, -5); //B7
+	glVertex3f(9.7, 2, -5.3); //B17
+	glEnd();
+
+
+	glBegin(GL_QUADS);//Parede Grande 2
+	glColor3f(0.36, 0.25, 0.20);
+	glNormal3f(0, 0, 0.8);
+	glVertex3i(9, 0, -5); //B3
+	glVertex3i(-9, 0, -5); //B1
+	glVertex3i(-9, 2, -5); //B5
+	glVertex3i(9, 2, -5); //B7
+	glEnd();
+
+
+	glBegin(GL_QUADS);//Parede Grande 2 Externa
+	glColor3f(0.36, 0.25, 0.20);
+	glNormal3f(0, 0, -0.8);
+	glVertex3f(9.7, -3, -5.3); //B13
+	glVertex3f(-9.7, -3, -5.3); //B11
+	glVertex3f(-9.7, 2, -5.3); //B15
+	glVertex3f(9.7, 2, -5.3); //B17
+	glEnd();
+
+
+	glBegin(GL_QUADS); //Liga Grande 2
+	glColor3f(0.36, 0.25, 0.20);
+	glNormal3f(0, 0.8, 0);
+	glVertex3f(-9.7, 2, -5.3); //B15
+	glVertex3i(-9, 2, -5); //B5
+	glVertex3i(9, 2, -5); //B7
+	glVertex3f(9.7, 2, -5.3); //B17
+	glEnd();
+
+	glEnable(GL_TEXTURE_2D);
+	glBegin(GL_POLYGON);// Campo
+	glColor3f(0.0, 0.5, 0.10);
+	glTexCoord2f(0, 0);	
+	glVertex3f(-9, 0.01, 5);
+	glTexCoord2f(1, 0);	
+	glVertex3f(9, 0.01, 5);
+	glTexCoord2f(1, 1);
+	glVertex3f(9, 0.01, -5);
+	glTexCoord2f(0, 1);
+	glVertex3f(-9, 0.01, -5); 	
+	glEnd();
+	glDisable(GL_TEXTURE_2D);
+
+	glBegin(GL_QUADS);// Fundo da base
+	glColor3f(0.36, 0.25, 0.20);
+	glNormal3f(0, -1, 0);
+	glVertex3f(-9.7, -3, 5.3); //B2
+	glVertex3f(-9.7, -3, -5.3); //B1
+	glVertex3f(9.7, -3, -5.3); //B3
+	glVertex3f(9.7, -3, 5.3); //B4
+	glEnd();
+
+	glBegin(GL_QUADS); //Gaveta
+	glColor3f(0.32, 0.22, 0.16);
+	glNormal3f(0, 0, 0.8);
+	glVertex3f(-2.7, -1, 5.8);
+	glVertex3f(-2.7, -2, 5.8);
+	glVertex3f(2.7, -2, 5.8);
+	glVertex3f(2.7, -1, 5.8);
+	glEnd();
+
+	glBegin(GL_QUADS); //Gaveta
+	glColor3f(0.32, 0.22, 0.16);
+	glNormal3f(0, 0.8, 0);
+	glVertex3f(-2.7, -1, 5.8);
+	glVertex3f(-2.7, -1, 5.3);
+	glVertex3f(2.7, -1, 5.3);
+	glVertex3f(2.7, -1, 5.8);
+	glEnd();
+
+	glBegin(GL_QUADS); //Gaveta
+	glColor3f(0.32, 0.22, 0.16);
+	glNormal3f(0, -0.8, 0);
+	glVertex3f(-2.7, -2, 5.8);
+	glVertex3f(-2.7, -2, 5.3);
+	glVertex3f(2.7, -2, 5.3);
+	glVertex3f(2.7, -2, 5.8);
+	glEnd();
+
+	glBegin(GL_QUADS); //Gaveta
+	glColor3f(0.32, 0.22, 0.16);
+	glNormal3f(0.8, 0, 0);
+	glVertex3f(2.7, -1, 5.3);
+	glVertex3f(2.7, -2, 5.3);
+	glVertex3f(2.7, -2, 5.8);
+	glVertex3f(2.7, -1, 5.8);
+	glEnd();
+
+	glBegin(GL_QUADS); //Gaveta
+	glColor3f(0.32, 0.22, 0.16);
+	glNormal3f(-0.8, 0, 0);
+	glVertex3f(-2.7, -1, 5.3);
+	glVertex3f(-2.7, -2, 5.3);
+	glVertex3f(-2.7, -2, 5.8);
+	glVertex3f(-2.7, -1, 5.8);
+	glEnd();
+
+	GLUquadric* qobj1 = gluNewQuadric();
+	glPushMatrix();
+	glColor3f(0.36, 0.16, 0.14);
+	glTranslatef(0, -1.5, 5.8);
+	glRotatef(0, 1.0f, 0.0f, 0.0f);
+	gluCylinder(qobj1, 0.2f, 0.2f, 0.2, 15, 15);
+	glPopMatrix();
+
+
+	//Fim da Base
+
+	//Inicio dos pés 
+
+	glBegin(GL_QUADS);
+	glColor3f(0.36, 0.25, 0.20);
+	glNormal3f(0,0,-0.8);
+	glVertex3i(10, -9, -6); //p23
+	glVertex3i(8, -9, -6); //p24
+	glVertex3i(8, 0, -6); //p20
+	glVertex3i(10, 0, -6); //p19
+	glEnd();
+
+
+	glBegin(GL_QUADS);
+	glColor3f(0.36, 0.25, 0.20);
+	glNormal3f(0.8,0,0);
+	glVertex3i(10, -9, -4); //p22
+	glVertex3i(10, 0, -4); //p18
+	glVertex3i(10, 0, -6); //p19
+	glVertex3i(10, -9, -6); //p23
+	glEnd();
+
+
+	glBegin(GL_QUADS);
+	glColor3f(0.36, 0.25, 0.20);
+	glNormal3f(0,0,-0.8);
+	glVertex3i(-8, 0, -6); //p4
+	glVertex3i(-10, 0, -6); //p3
+	glVertex3i(-10, -9, -6); //p7
+	glVertex3i(-8, -9, -6); //p8
+	glEnd();
+
+
+	glBegin(GL_QUADS);
+	glColor3f(0.36, 0.25, 0.20);
+	glNormal3f(-0.8, 0, 0);
+	glVertex3i(-10, 0, -6); //p3
+	glVertex3i(-10, 0, -4); //p2
+	glVertex3i(-10, -9, -4); //p6
+	glVertex3i(-10, -9, -6); //p7
+	glEnd();
+
+
+	glBegin(GL_QUADS);
+	glColor3f(0.36, 0.25, 0.20);
+	glNormal3f(0,0,0.8);
+	glVertex3i(-10, 0, 6); //p11
+	glVertex3i(-8, 0, 6); //p12
+	glVertex3i(-8, -9, 6); //p16
+	glVertex3i(-10, -9, 6); //p15
+	glEnd();
+
+
+	glBegin(GL_QUADS);
+	glColor3f(0.36, 0.25, 0.20);
+	glNormal3f(-0.8, 0, 0);
+	glVertex3i(-10, 0, 4); //p10
+	glVertex3i(-10, 0, 6); //p11
+	glVertex3i(-10, -9, 6); //p15
+	glVertex3i(-10, -9, 4); //p14
+	glEnd();
+
+
+	glBegin(GL_QUADS);
+	glColor3f(0.36, 0.25, 0.20);
+	glNormal3f(0.8,0,0);
+	glVertex3i(10, 0, 4); //p26
+	glVertex3i(10, 0, 6); //p27
+	glVertex3i(10, -9, 6); //p31
+	glVertex3i(10, -9, 4); //p30
+	glEnd();
+
+
+	glBegin(GL_QUADS);
+	glColor3f(0.36, 0.25, 0.20);
+	glNormal3f(0,0,0.8);
+	glVertex3i(8, 0, 6); //p28
+	glVertex3i(10, 0, 6); //p27
+	glVertex3i(10, -9, 6); //p31
+	glVertex3i(8, -9, 6); //p32
+	glEnd();
+
+
+	glBegin(GL_QUADS);
+	glColor3f(0.36, 0.25, 0.20);
+	glNormal3f(0,0,0.8);
+	glVertex3i(-10, 0, -4); //p2
+	glVertex3i(-8, 0, -4); //p1
+	glVertex3i(-8, -9, -4); //p5
+	glVertex3i(-10, -9, -4); //p6
+	glEnd();
+
+
+	glBegin(GL_QUADS);
+	glColor3f(0.36, 0.25, 0.20);
+	glNormal3f(0.8,0,0);
+	glVertex3i(-8, 0, -4); //p1
+	glVertex3i(-8, 0, -6); //p4
+	glVertex3i(-8, -9, -6); //p8
+	glVertex3i(-8, -9, -4); //p5
+	glEnd();
+
+
+	glBegin(GL_QUADS);
+	glColor3f(0.36, 0.25, 0.20);
+	glNormal3f(0, 0.8, 0);
+	glVertex3i(-8, 0, -4); //p1
+	glVertex3i(-10, 0, -4); //p2
+	glVertex3i(-10, 0, -6); //p3
+	glVertex3i(-8, 0, -6); //p4	
+	glEnd();
+
+	glBegin(GL_QUADS);
+	glColor3f(0.36, 0.25, 0.20);
+	glNormal3f(0.8,0,0);
+	glVertex3i(-8, -9, 6); //p16
+	glVertex3i(-8, -9, 4); //p13
+	glVertex3i(-8, 0, 4); //p9
+	glVertex3i(-8, 0, 6); //p12
+	glEnd();
+
+	glBegin(GL_QUADS);
+	glColor3f(0.36, 0.25, 0.20);
+	glNormal3f(0,0,-0.8);
+	glVertex3i(-8, 0, 4); //p9
+	glVertex3i(-10, 0, 4); //p10
+	glVertex3i(-10, -9, 4); //p14
+	glVertex3i(-8, -9, 4); //p13
+	glEnd();
+
+
+	glBegin(GL_QUADS);
+	glColor3f(0.36, 0.25, 0.20);
+	glNormal3f(0, 0.8, 0);
+	glVertex3i(-8, 0, 4); //p9
+	glVertex3i(-10, 0, 4); //p10
+	glVertex3i(-10, 0, 6); //p11
+	glVertex3i(-8, 0, 6); //p12
+	glEnd();
+
+
+	glBegin(GL_QUADS);
+	glColor3f(0.36, 0.25, 0.20);
+	glNormal3f(-0.8, 0, 0);
+	glVertex3i(8, 0, -6); //p20
+	glVertex3i(8, 0, -4); //p17
+	glVertex3i(8, -9, -4); //p21
+	glVertex3i(8, -9, -6); //p24
+	glEnd();
+
+
+	glBegin(GL_QUADS);
+	glColor3f(0.36, 0.25, 0.20);
+	glNormal3f(0,0,0.8);
+	glVertex3i(8, 0, -4); //p17
+	glVertex3i(10, 0, -4); //p18
+	glVertex3i(10, -9, -4); //p22
+	glVertex3i(8, -9, -4); //p21
+	glEnd();
+
+
+	glBegin(GL_QUADS);
+	glColor3f(0.36, 0.25, 0.20);
+	glNormal3f(0, 0.8, 0);
+	glVertex3i(8, 0, -4); //p17
+	glVertex3i(10, 0, -4); //p18
+	glVertex3i(10, 0, -6); //p19
+	glVertex3i(8, 0, -6); //p20
+	glEnd();
+
+
+	glBegin(GL_QUADS);
+	glColor3f(0.36, 0.25, 0.20);
+	glNormal3f(0,0,-0.8);
+	glVertex3i(10, 0, 4); //p26
+	glVertex3i(8, 0, 4); //p25
+	glVertex3i(8, -9, 4); //p29
+	glVertex3i(10, -9, 4); //p30
+	glEnd();
+
+
+	glBegin(GL_QUADS);
+	glColor3f(0.36, 0.25, 0.20);
+	glNormal3f(-0.8, 0, 0);
+	glVertex3i(8, 0, 4); //p25
+	glVertex3i(8, 0, 6); //p28
+	glVertex3i(8, -9, 6); //p32
+	glVertex3i(8, -9, 4); //p29
+	glEnd();
+
+
+	glBegin(GL_QUADS);
+	glColor3f(0.36, 0.25, 0.20);
+	glNormal3f(0, 0.8, 0);
+	glVertex3i(8, 0, 4); //p25
+	glVertex3i(10, 0, 4); //p26
+	glVertex3i(10, 0, 6); //p27
+	glVertex3i(8, 0, 6); //p28
+	glEnd();
+
+
+	//Linhas 
+
+	glBegin(GL_LINE_LOOP);
+	glColor3f(0.36, 0.25, 0.20);
+	glVertex3f(7.99, -0.3, 5.31);
+	glVertex3f(-7.99, -0.3, 5.31);
+	glEnd();
+
+	glBegin(GL_LINE_LOOP);
+	glColor3f(0.36, 0.25, 0.20);
+	glVertex3f(-9.71, -0.3, 5.31);
+	glVertex3f(-9.71, -0.3, -5.31);
+	glEnd();
+
+	glBegin(GL_LINE_LOOP);
+	glColor3f(0.36, 0.25, 0.20);
+	glVertex3f(9.71, -0.3, 5.31);
+	glVertex3f(9.71, -0.3, -5.31);
+	glEnd();
+
+	glBegin(GL_LINE_LOOP);
+	glColor3f(0.36, 0.25, 0.20);
+	glVertex3f(7.99, -0.3, -5.31);
+	glVertex3f(-7.99, -0.3, -5.31);
+	glEnd();
+
+
+	//Fim Linhas
+
+	glutSwapBuffers();
+	glFlush();
+}
+
+// Função usada para especificar a posição do observador virtual
+void PosicionaObservador(void)
+{
+	// Especifica sistema de coordenadas do modelo
+	glMatrixMode(GL_MODELVIEW);
+	// Inicializa sistema de coordenadas do modelo
+	glLoadIdentity();
+	DefineIluminacao();
+	// Posiciona e orienta o observador
+	glTranslatef(-obsX, -obsY, -obsZ);
+	glRotatef(rotX, 1, 0, 0);
+	glRotatef(rotY, 0, 1, 0);
+	glRotatef(rotZ, 0, 0, 1);
+}
+
+
+// Função callback para eventos de botões do mouse
+void GerenciaMouse(int button, int state, int x, int y)
+{
+	if (state == GLUT_DOWN)
+	{
+		// Salva os parâmetros atuais
+		x_ini = x;
+		y_ini = y;
+		obsX_ini = obsX;
+		obsY_ini = obsY;
+		obsZ_ini = obsZ;
+		rotX_ini = rotX;
+		rotY_ini = rotY;
+		bot = button;
+	}
+	else bot = -1;
+}
+
+void GerenciaMovim(int x, int y)
+{
+	// Botão esquerdo 
+	if (bot == GLUT_LEFT_BUTTON)
+	{
+		// Calcula diferenças
+		int deltax = x_ini - x;
+		int deltay = y_ini - y;
+		// E modifica ângulos
+		rotY = rotY_ini - deltax / 10.0;
+		rotX = rotX_ini - deltay / 10.0;
+	}
+	// Botão direito 
+	else if (bot == GLUT_RIGHT_BUTTON)
+	{
+		int deltax = x_ini - x;
+		int deltay = y_ini - y;
+		// Calcula diferença
+		int deltaz = deltax - deltay;
+
+		// E modifica distância do observador
+		obsZ = obsZ_ini + deltaz / 20.0;
+	}
+	PosicionaObservador();
+	glutPostRedisplay();
+}
+
+void AlteraTamanhoJanela(GLsizei w, GLsizei h)
+{
+	// Para previnir uma divisão por zero
+	if (h == 0) h = 1;
+
+	// Especifica as dimensões da viewport
+	glViewport(0, 0, w, h);
+
+	// Calcula a correção de aspecto
+	fAspect = (GLfloat)w / (GLfloat)h;
+	// Especifica sistema de coordenadas de projeção
+	glMatrixMode(GL_PROJECTION);
+	// Inicializa sistema de coordenadas de projeção
+	glLoadIdentity();
+	// Especifica a projeção perspectiva(angulo,aspecto,zMin,zMax)
+	gluPerspective(angle, fAspect, 0.5, 500);
+	PosicionaObservador();
+}
+
+void Inicializa(void)
+{
+	Textura();
+	// Define a cor de fundo da janela de visualização como branca
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+
+	// Habilita a definição da cor do material a partir da cor corrente
+	glEnable(GL_COLOR_MATERIAL);
+	//Habilita o uso de iluminação
+	glEnable(GL_LIGHTING);
+	// Habilita a luz de número 0
+	glEnable(GL_LIGHT0);
+	// Habilita o depth-buffering
+	glEnable(GL_DEPTH_TEST);
+
+	// Habilita o modelo de colorização de Gouraud
+	glShadeModel(GL_SMOOTH);
+
+}
+
+
+// Função Principal 
+int main(void)
+{
+	// Define o modo de operação da GLUT
+	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
+	glutInitWindowPosition(10, 10);
+	glutInitWindowSize(1000, 800);
+	glutCreateWindow("Pebolim");
+
+	glutDisplayFunc(Desenha);
+	glutReshapeFunc(AlteraTamanhoJanela);
+
+	// Registra a função callback para eventos de botões do mouse	
+	glutMouseFunc(GerenciaMouse);
+	// Registra a função callback para eventos de movimento do mouse	
+	glutMotionFunc(GerenciaMovim);
+	Inicializa();
+	glutMainLoop();
+
+	return 0;
+}
